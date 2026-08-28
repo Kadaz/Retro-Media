@@ -1,39 +1,55 @@
 # Retro Hub — PS5 Browser Edition
 
-A static GitHub Pages shell designed for the PS5 browser.
+This version is designed for GitHub Pages and **does not have a PC ROM file picker**.
 
-## What this is
+## Automatic ROM detection
 
-The project uses EmulatorJS as the emulation layer. EmulatorJS supports NES, SNES, Game Boy, Game Boy Color and Game Boy Advance in the browser. Its core/data files are intended to be self-hosted, so the deployed site does not need to fetch emulator cores from a third-party CDN at runtime.
+The page reads the public GitHub repository tree automatically through the GitHub API. You do not edit `games.json` and you do not register games manually.
 
-The included GitHub Actions workflow downloads the upstream EmulatorJS distribution during the Pages build and places it under `vendor/emulatorjs/`. This keeps the runtime self-contained while avoiding a huge binary bundle in the source repository.
+Put ROMs here:
 
-## ROMs
+- `roms/nes/` → `.nes`, `.fds`, `.unif`, `.unf`
+- `roms/snes/` → `.sfc`, `.smc`, `.fig`, `.swc`, `.bsx`
+- `roms/gb/` → `.gb`
+- `roms/gbc/` → `.gbc`
+- `roms/gba/` → `.gba`
 
-Do not put copyrighted ROMs in this repository unless you have the rights to distribute them. Add your own legally obtained ROMs under `roms/` and list them in `games.json`.
+Subfolders inside those folders are also detected.
 
 Example:
-```json
-{
-  "nes": [{"title":"My Game","url":"roms/mygame.nes"}],
-  "snes": [],
-  "gb": [],
-  "gba": []
-}
+
+```text
+roms/
+  nes/
+    game.nes
+  snes/
+    game.sfc
+  gb/
+    game.gb
+  gbc/
+    game.gbc
+  gba/
+    game.gba
 ```
 
-## GitHub Pages
+After pushing a ROM to GitHub, refresh the GitHub Pages site. The game appears automatically.
 
-Enable GitHub Pages using **GitHub Actions**. The workflow builds the static site and downloads the required EmulatorJS files into the final Pages artifact.
+## Emulator
 
-## Important PS5 note
+The page uses the stable EmulatorJS distribution from the official EmulatorJS CDN at runtime. The emulator is started with the correct core for each system:
 
-The PS5 browser is not a normal desktop Chromium target and can be stricter about WebAssembly, audio and controller APIs. The page therefore stays deliberately simple: no framework, no ads, no analytics, no external runtime CDN, and no unnecessary UI.
+- NES → Nestopia
+- SNES → Snes9x
+- Game Boy → Gambatte
+- Game Boy Color → Gambatte
+- Game Boy Advance → mGBA
 
-## Social links
+No PC file input is used anywhere in the project.
 
-Edit the `social` array in `app.js` with your real profiles. The example links are placeholders except for the YouTube channel.
+## GitHub Pages requirement
 
-## Licensing
+The site must be opened from its normal GitHub Pages `*.github.io` address so the page can determine the GitHub owner and repository automatically.
 
-EmulatorJS and its cores have their own licenses. Keep the upstream license/notice files shipped by the workflow. This project does not include commercial ROMs.
+## ROM rights
+
+Only use ROMs you are legally entitled to use and distribute.

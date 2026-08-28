@@ -9,18 +9,13 @@
 <body>
 <header class="top">
   <div><h1>RETRO HUB</h1><span>PS5 Browser Edition</span></div>
-  <nav>
-    <a href="#emulator">Emulator</a>
-    <a href="#social">Social</a>
-  </nav>
+  <nav><a href="#emulator">Emulator</a><a href="#social">Social</a></nav>
 </header>
-
 <main>
 <section class="hero">
   <h2>Retro games, one page.</h2>
   <p>NES · SNES · Game Boy · Game Boy Color · Game Boy Advance</p>
 </section>
-
 <section id="emulator" class="panel">
   <div class="toolbar">
     <label>System
@@ -32,22 +27,18 @@
         <option value="gba">Game Boy Advance</option>
       </select>
     </label>
-    <label>Game
-      <select id="game"><option value="">Choose a ROM…</option></select>
+    <label class="game-label">Game
+      <select id="game"><option value="">Loading ROMs…</option></select>
     </label>
-    <button id="launch">PLAY</button>
+    <button id="launch" disabled>PLAY</button>
+    <button id="reset" class="secondary">RESET</button>
   </div>
-  <div id="status">Scanning ROMs…</div>
-  <div id="gameContainer"></div>
-  <p class="note">ROMs are detected automatically from <code>roms/nes</code>, <code>roms/snes</code>, <code>roms/gb</code>, <code>roms/gbc</code> and <code>roms/gba</code>.</p>
+  <div id="status">Scanning the GitHub repository for ROMs…</div>
+  <div id="game-screen"><div id="game"></div></div>
+  <p class="note">ROMs are detected automatically from the repository's <code>roms/</code> folders. There is no PC-file picker.</p>
 </section>
-
-<section id="social" class="panel">
-<h2>Social</h2>
-<div class="social-grid" id="socialGrid"></div>
-</section>
+<section id="social" class="panel"><h2>Social</h2><div class="social-grid" id="socialGrid"></div></section>
 </main>
-
 <footer>Built for a clean PS5 browser experience.</footer>
 <script src="app.js"></script>
 </body>
