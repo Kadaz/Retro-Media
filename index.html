@@ -33,17 +33,13 @@
       </select>
     </label>
     <label>Game
-      <select id="gameSelect"><option value="">Scanning ROMs…</option></select>
+      <select id="game"><option value="">Choose a ROM…</option></select>
     </label>
     <button id="launch">PLAY</button>
-    <label id="localGbaLabel" hidden>GBA from PC
-      <input id="localGba" type="file" accept=".gba,application/octet-stream" hidden>
-      <button type="button" onclick="document.getElementById('localGba').click()">CHOOSE FILE</button>
-    </label>
   </div>
-  <div id="status">Scanning ROM folders…</div>
-  <div id="game"></div>
-  <p class="note">ROMs are detected automatically from the <code>roms/</code> folders. No games.json editing is required.</p>
+  <div id="status">Scanning ROMs…</div>
+  <div id="gameContainer"></div>
+  <p class="note">ROMs are detected automatically from <code>roms/nes</code>, <code>roms/snes</code>, <code>roms/gb</code>, <code>roms/gbc</code> and <code>roms/gba</code>.</p>
 </section>
 
 <section id="social" class="panel">
