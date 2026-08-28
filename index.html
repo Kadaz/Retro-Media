@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retro Hub — PS5 Browser</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div><h1>RETRO HUB</h1><span>PS5 Browser Edition</span></div>
+  <nav>
+    <a href="#emulator">Emulator</a>
+    <a href="#social">Social</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero">
+  <h2>Retro games, one page.</h2>
+  <p>NES · SNES · Game Boy · Game Boy Color · Game Boy Advance</p>
+</section>
+
+<section id="emulator" class="panel">
+  <div class="toolbar">
+    <label>System
+      <select id="system">
+        <option value="nes">NES</option>
+        <option value="snes">SNES</option>
+        <option value="gb">Game Boy / Color</option>
+        <option value="gba">Game Boy Advance</option>
+      </select>
+    </label>
+    <label>Game
+      <select id="game"><option value="">Choose a ROM…</option></select>
+    </label>
+    <button id="launch">PLAY</button>
+  </div>
+  <div id="game"></div>
+  <p class="note">Put only ROMs you are legally entitled to use in the <code>roms/</code> folder and add them to <code>games.json</code>.</p>
+</section>
+
+<section id="social" class="panel">
+<h2>Social</h2>
+<div class="social-grid" id="socialGrid"></div>
+</section>
+</main>
+
+<footer>Built for a clean PS5 browser experience.</footer>
+<script src="app.js"></script>
+</body>
+</html>
