@@ -8,7 +8,7 @@ const SYSTEMS = {
 
 const gamesBySystem = { nes: [], snes: [], gb: [], gbc: [], gba: [] };
 const systemSelect = document.getElementById("system");
-const gameSelect = document.getElementById("game");
+const gameSelect = document.getElementById("game-select");
 const launchButton = document.getElementById("launch");
 const resetButton = document.getElementById("reset");
 const status = document.getElementById("status");
@@ -33,6 +33,10 @@ social.forEach(([name, url]) => {
   document.getElementById("socialGrid").appendChild(a);
 });
 
+// This project is for Kadaz/New-Test. The fallback also makes the scanner
+// work while testing locally or on a non-github.io custom Pages domain.
+const FALLBACK_REPOSITORY = { owner: "Kadaz", repo: "New-Test" };
+
 function detectRepository() {
   const host = location.hostname.toLowerCase();
   const parts = location.pathname.split("/").filter(Boolean);
@@ -40,17 +44,18 @@ function detectRepository() {
   if (host.endsWith(".github.io")) {
     const owner = host.split(".")[0];
     const repo = parts.length ? parts[0] : `${owner}.github.io`;
-    const baseParts = parts.length ? parts.slice(1) : [];
-    return { owner, repo, basePath: "/" + baseParts.join("/") + (baseParts.length ? "/" : "") };
+    return { owner, repo };
   }
 
-  // For a custom domain, set these two constants if ever needed.
-  return null;
+  return FALLBACK_REPOSITORY;
 }
 
-function extensionMatches(path, system) {
+function systemForPath(path) {
   const lower = path.toLowerCase().split("?")[0].split("#")[0];
-  return SYSTEMS[system].extensions.some(ext => lower.endsWith(ext));
+  for (const [key, system] of Object.entries(SYSTEMS)) {
+    if (system.extensions.some(ext => lower.endsWith(ext))) return key;
+  }
+  return null;
 }
 
 function titleFromPath(path) {
@@ -59,15 +64,15 @@ function titleFromPath(path) {
 }
 
 function addGame(system, path, rawBase) {
-  if (!extensionMatches(path, system)) return;
   const url = `${rawBase}/${path.split("/").map(encodeURIComponent).join("/")}`;
   gamesBySystem[system].push({ title: titleFromPath(path), url, path });
 }
 
 function refreshGames() {
   const system = systemSelect.value;
-  gameSelect.innerHTML = "";
   const list = gamesBySystem[system] || [];
+
+  gameSelect.innerHTML = "";
 
   const first = document.createElement("option");
   first.value = "";
@@ -75,52 +80,80 @@ function refreshGames() {
   gameSelect.appendChild(first);
 
   list.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: "base" }));
-  for (const g of list) {
+  for (const game of list) {
     const option = document.createElement("option");
-    option.value = g.url;
-    option.textContent = g.title;
+    option.value = game.url;
+    option.textContent = game.title;
     gameSelect.appendChild(option);
   }
+
   launchButton.disabled = list.length === 0;
 }
 
 async function scanGitHubRepository() {
   const repo = detectRepository();
-  if (!repo) {
-    throw new Error("This GitHub Pages URL could not be mapped to a GitHub repository. Open the site from its github.io address.");
-  }
-
   status.textContent = `Scanning ${repo.owner}/${repo.repo}/roms/…`;
-  const repoResponse = await fetch(`https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`, { cache: "no-store" });
-  if (!repoResponse.ok) throw new Error(`GitHub repository request failed (${repoResponse.status}).`);
-  const repoInfo = await repoResponse.json();
 
-  const treeResponse = await fetch(`https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/git/trees/${encodeURIComponent(repoInfo.default_branch)}?recursive=1`, { cache: "no-store" });
+  const repoUrl = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`;
+  const repoResponse = await fetch(repoUrl, { cache: "no-store" });
+  if (!repoResponse.ok) throw new Error(`GitHub repository request failed (${repoResponse.status}).`);
+
+  const repoInfo = await repoResponse.json();
+  const branch = repoInfo.default_branch || "main";
+  const treeUrl = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+  const treeResponse = await fetch(treeUrl, { cache: "no-store" });
   if (!treeResponse.ok) throw new Error(`GitHub ROM scan failed (${treeResponse.status}).`);
+
   const tree = await treeResponse.json();
   if (!Array.isArray(tree.tree)) throw new Error("GitHub did not return a repository tree.");
 
-  const rawBase = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${encodeURIComponent(repoInfo.default_branch)}`;
+  const rawBase = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${branch}`;
+
+  // Accept BOTH layouts:
+  // roms/gba/game.gba
+  // roms/game.gba
+  // The system is determined from the ROM extension, so no manual JSON is needed.
   for (const item of tree.tree) {
     if (item.type !== "blob") continue;
-    const normalized = item.path.replace(/^\.\//, "");
-    const match = normalized.match(/^roms\/(nes|snes|gb|gbc|gba)\/(.+)$/i);
-    if (!match) continue;
-    addGame(match[1].toLowerCase(), normalized, rawBase);
+
+    const path = item.path.replace(/^\.\//, "");
+    if (!/^roms\//i.test(path)) continue;
+
+    const system = systemForPath(path);
+    if (!system) continue;
+
+    addGame(system, path, rawBase);
   }
 
-  const total = Object.values(gamesBySystem).reduce((n, list) => n + list.length, 0);
+  for (const list of Object.values(gamesBySystem)) {
+    const seen = new Set();
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (seen.has(list[i].path)) list.splice(i, 1);
+      else seen.add(list[i].path);
+    }
+  }
+
   refreshGames();
-  status.textContent = total ? `${total} ROM${total === 1 ? "" : "s"} found automatically.` : "No ROMs found. Put your ROMs inside roms/nes, roms/snes, roms/gb, roms/gbc or roms/gba and refresh.";
+
+  const total = Object.values(gamesBySystem).reduce((n, list) => n + list.length, 0);
+  status.textContent = total
+    ? `${total} ROM${total === 1 ? "" : "s"} found automatically.`
+    : "No ROMs found under roms/.";
 }
 
 function stopCurrentEmulator() {
-  try { if (typeof window.EJS_terminate === "function") window.EJS_terminate(); } catch (_) {}
+  try {
+    if (typeof window.EJS_terminate === "function") window.EJS_terminate();
+  } catch (_) {}
+
   document.querySelectorAll("#emulatorjs-loader").forEach(el => el.remove());
   gameContainer.innerHTML = "";
-  window.EJS_player = undefined;
-  window.EJS_gameUrl = undefined;
-  window.EJS_core = undefined;
+
+  delete window.EJS_player;
+  delete window.EJS_gameUrl;
+  delete window.EJS_core;
+  delete window.EJS_pathtodata;
+  delete window.EJS_startOnLoaded;
 }
 
 function loadEmulator(url) {
@@ -144,8 +177,12 @@ function loadEmulator(url) {
   const script = document.createElement("script");
   script.id = "emulatorjs-loader";
   script.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-  script.onload = () => { status.textContent = `${config.name} emulator loaded.`; };
-  script.onerror = () => { status.textContent = "EmulatorJS could not be loaded. Check the network connection and refresh the page."; };
+  script.onload = () => {
+    status.textContent = `${config.name} emulator loaded.`;
+  };
+  script.onerror = () => {
+    status.textContent = "EmulatorJS could not be loaded. Check the network connection and refresh the page.";
+  };
   document.body.appendChild(script);
 }
 
@@ -159,6 +196,7 @@ gameSelect.addEventListener("change", () => {
 });
 
 launchButton.addEventListener("click", () => loadEmulator(gameSelect.value));
+
 resetButton.addEventListener("click", () => {
   stopCurrentEmulator();
   status.textContent = "Emulator reset.";
