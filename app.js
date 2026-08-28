@@ -6,7 +6,7 @@ const SYSTEMS = {
   gba: { name: "Game Boy Advance", core: "mgba", extensions: [".gba"] }
 };
 
-const REPOSITORY = { owner: "Kadaz", repo: "New-Test", branch: "main" };
+const REPOSITORY = { owner: "Kadaz", repo: "Retro-Media", branch: "main" };
 const gamesBySystem = { nes: [], snes: [], gb: [], gbc: [], gba: [] };
 
 const systemSelect = document.getElementById("system");
