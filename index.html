@@ -1,45 +1,583 @@
 <!doctype html>
+
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Retro Hub — PS5 Browser</title>
+
 <link rel="stylesheet" href="style.css">
+
+<style>
+/* Temporary PS5 GBA test */
+#ps5-gba-test {
+  margin-top: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 8px;
+  background: #171717;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#ps5-gba-test:hover,
+#ps5-gba-test:focus {
+  background: #252525;
+  outline: 2px solid #fff;
+}
+
+#ps5-gba-test-area {
+  display: none;
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 8px;
+  background: #050505;
+}
+
+#ps5-gba-status {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+#ps5-gba-canvas {
+  display: block;
+  width: 480px;
+  height: 320px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #000;
+  image-rendering: pixelated;
+}
+
+#ps5-gba-close {
+  display: block;
+  margin: 14px auto 0;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+</style>
+
 </head>
+
 <body>
+
 <header class="top">
-  <div><h1>RETRO HUB</h1><span>PS5 Browser Edition</span></div>
-  <nav><a href="#emulator">Emulator</a><a href="#social">Social</a></nav>
+  <div>
+    <h1>RETRO HUB</h1>
+    <span>PS5 Browser Edition</span>
+  </div>
+
+  <nav>
+    <a href="#emulator">Emulator</a>
+    <a href="#social">Social</a>
+  </nav>
 </header>
+
 <main>
+
 <section class="hero">
   <h2>Retro games, one page.</h2>
-  <p>NES · SNES · Game Boy · Game Boy Color · Game Boy Advance</p>
+  <p>
+    NES · SNES · Game Boy · Game Boy Color · Game Boy Advance
+  </p>
 </section>
+
 <section id="emulator" class="panel">
+
   <div class="toolbar">
-    <label>System
-      <select id="system">
-        <option value="nes">NES</option>
-        <option value="snes">SNES</option>
-        <option value="gb">Game Boy</option>
-        <option value="gbc">Game Boy Color</option>
-        <option value="gba">Game Boy Advance</option>
-      </select>
-    </label>
-    <label class="game-label">Game
-      <select id="game-select"><option value="">Loading ROMs…</option></select>
-    </label>
-    <button id="launch" disabled>PLAY</button>
-    <button id="reset" class="secondary">RESET</button>
+
+```
+<label>
+  System
+
+  <select id="system">
+
+    <option value="nes">
+      NES
+    </option>
+
+    <option value="snes">
+      SNES
+    </option>
+
+    <option value="gb">
+      Game Boy
+    </option>
+
+    <option value="gbc">
+      Game Boy Color
+    </option>
+
+    <option value="gba">
+      Game Boy Advance
+    </option>
+
+  </select>
+
+</label>
+
+
+<label class="game-label">
+  Game
+
+  <select id="game-select">
+
+    <option value="">
+      Loading ROMs…
+    </option>
+
+  </select>
+
+</label>
+
+
+<button
+  id="launch"
+  disabled
+>
+  PLAY
+</button>
+
+
+<button
+  id="reset"
+  class="secondary"
+>
+  RESET
+</button>
+```
+
   </div>
-  <div id="status">Scanning the GitHub repository for ROMs…</div>
-  <div id="game-screen"><div id="game"></div></div>
-  <p class="note">ROMs are detected automatically from the repository's <code>roms/</code> folders. There is no PC-file picker.</p>
+
+  <div id="status">
+    Scanning the GitHub repository for ROMs…
+  </div>
+
+  <div id="game-screen">
+    <div id="game"></div>
+  </div>
+
+  <p class="note">
+    ROMs are detected automatically from the repository's
+    <code>roms/</code> folders.
+    There is no PC-file picker.
+  </p>
+
+  <!-- =====================================================
+       TEMPORARY PS5 GBA TEST
+       ===================================================== -->
+
+  <button id="ps5-gba-test">
+    PS5 GBA TEST
+  </button>
+
+  <div id="ps5-gba-test-area">
+
+```
+<div id="ps5-gba-status">
+  PS5 GBA test ready.
+</div>
+
+
+<canvas
+  id="ps5-gba-canvas"
+  width="240"
+  height="160"
+></canvas>
+
+
+<button id="ps5-gba-close">
+  CLOSE PS5 GBA TEST
+</button>
+```
+
+  </div>
+
 </section>
-<section id="social" class="panel"><h2>Social</h2><div class="social-grid" id="socialGrid"></div></section>
+
+<section
+  id="social"
+  class="panel"
+>
+
+  <h2>
+    Social
+  </h2>
+
+  <div
+    class="social-grid"
+    id="socialGrid"
+  ></div>
+
+</section>
+
 </main>
-<footer>Built for a clean PS5 browser experience.</footer>
-<script src="app.js?v=20260828-4"></script>
+
+<footer>
+  Built for a clean PS5 browser experience.
+</footer>
+
+<script src="app.js?v=20260828-3"></script>
+
+<script>
+
+/*
+============================================================
+TEMPORARY PS5 GBA TEST
+============================================================
+
+This test intentionally does NOT touch the normal emulator.
+
+It only checks whether the PS5 browser can load the
+pure-JavaScript GBA engine.
+
+The ROM is taken automatically from the first GBA ROM
+already discovered by the normal app.
+
+No PC file picker.
+============================================================
+*/
+
+
+(function () {
+
+  const testButton =
+    document.getElementById(
+      "ps5-gba-test"
+    );
+
+  const testArea =
+    document.getElementById(
+      "ps5-gba-test-area"
+    );
+
+  const status =
+    document.getElementById(
+      "ps5-gba-status"
+    );
+
+  const closeButton =
+    document.getElementById(
+      "ps5-gba-close"
+    );
+
+
+  if (
+    !testButton ||
+    !testArea ||
+    !status ||
+    !closeButton
+  ) {
+    return;
+  }
+
+
+  testButton.addEventListener(
+    "click",
+    async function () {
+
+      testArea.style.display =
+        "block";
+
+      status.textContent =
+        "Checking PS5 browser…";
+
+
+      /*
+       * First check WebAssembly.
+       *
+       * This is only informational.
+       * The test emulator itself is pure JavaScript.
+       */
+
+      const wasmAvailable =
+        typeof WebAssembly !==
+        "undefined";
+
+
+      status.textContent =
+        wasmAvailable
+          ? "WebAssembly detected. Loading pure-JS GBA test…"
+          : "WebAssembly unavailable. Loading pure-JS GBA test…";
+
+
+      /*
+       * Find a GBA ROM from the normal scanner.
+       */
+
+      let gbaGame = null;
+
+
+      try {
+
+        if (
+          typeof gamesBySystem !==
+          "undefined" &&
+          Array.isArray(
+            gamesBySystem.gba
+          ) &&
+          gamesBySystem.gba.length
+        ) {
+
+          gbaGame =
+            gamesBySystem.gba[0];
+
+        }
+
+      } catch (_) {}
+
+
+      if (!gbaGame) {
+
+        status.textContent =
+          "No GBA ROM was found in the repository.";
+
+        return;
+
+      }
+
+
+      status.textContent =
+        "GBA ROM found: " +
+        gbaGame.title +
+        ". Loading pure-JavaScript emulator…";
+
+
+      /*
+       * Load gbajs2 directly from its public
+       * GitHub Pages deployment.
+       *
+       * IMPORTANT:
+       * This is only a compatibility experiment.
+       */
+
+      const testFrame =
+        document.createElement(
+          "iframe"
+        );
+
+
+      testFrame.style.width =
+        "100%";
+
+      testFrame.style.height =
+        "520px";
+
+      testFrame.style.border =
+        "0";
+
+      testFrame.style.background =
+        "#000";
+
+
+      testArea.appendChild(
+        testFrame
+      );
+
+
+      /*
+       * Build a tiny test document inside the iframe.
+       *
+       * The ROM is passed to the pure-JS emulator
+       * through the test page.
+       */
+
+      const frameDocument =
+        testFrame.contentDocument ||
+        testFrame.contentWindow.document;
+
+
+      frameDocument.open();
+
+
+      frameDocument.write(`
+<!doctype html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<style>
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+canvas {
+  width: 480px;
+  height: 320px;
+  max-width: 100%;
+  image-rendering: pixelated;
+  background: #111;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="message">
+Loading pure JavaScript GBA emulator…
+</div>
+
+<canvas
+id="screen"
+width="240"
+height="160"
+
+> </canvas>
+
+<script>
+
+window.TEST_ROM_URL =
+${JSON.stringify(gbaGame.url)};
+
+<\/script>
+
+<script
+src="https://andychase.me/gbajs2/js/gba.js"
+><\/script>
+
+<script>
+
+window.addEventListener(
+  "load",
+  async function () {
+
+    const message =
+      document.getElementById(
+        "message"
+      );
+
+    try {
+
+      if (
+        typeof GameBoyAdvance ===
+        "undefined"
+      ) {
+
+        throw new Error(
+          "gbajs2 did not load."
+        );
+
+      }
+
+
+      const response =
+        await fetch(
+          window.TEST_ROM_URL
+        );
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          "ROM download failed: " +
+          response.status
+        );
+
+      }
+
+
+      const buffer =
+        await response.arrayBuffer();
+
+
+      const gba =
+        new GameBoyAdvance();
+
+
+      gba.setCanvas(
+        document.getElementById(
+          "screen"
+        )
+      );
+
+
+      gba.loadRom(
+        new Uint8Array(
+          buffer
+        )
+      );
+
+
+      gba.runStable();
+
+
+      message.textContent =
+        "Pure-JS GBA emulator started.";
+
+    }
+    catch (error) {
+
+      message.textContent =
+        "GBA TEST ERROR: " +
+        error.message;
+
+      console.error(
+        error
+      );
+
+    }
+
+  }
+);
+
+<\/script>
+
+</body>
+
+</html>
+      `);
+
+
+      frameDocument.close();
+
+    }
+  );
+
+
+  closeButton.addEventListener(
+    "click",
+    function () {
+
+      testArea.style.display =
+        "none";
+
+
+      const iframe =
+        testArea.querySelector(
+          "iframe"
+        );
+
+
+      if (iframe) {
+        iframe.remove();
+      }
+
+
+      status.textContent =
+        "PS5 GBA test ready.";
+
+    }
+  );
+
+})();
+
+</script>
+
 </body>
 </html>
