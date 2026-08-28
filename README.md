@@ -1,4 +1,4 @@
-# Retro Hub
+# Retro Hub — PS5 Browser Edition
 
 This version is configured specifically for the public GitHub repository `Kadaz/New-Test`.
 

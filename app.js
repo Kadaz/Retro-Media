@@ -7,6 +7,17 @@ const SYSTEMS = {
 };
 
 const REPOSITORY = { owner: "Kadaz", repo: "Retro-Media", branch: "main" };
+
+// PS5 browser compatibility mode. The PS5 browser is much more restrictive
+// than desktop Chrome, so use the least demanding EmulatorJS configuration.
+const IS_PS5 = /PlayStation 5|PlayStation 5\.0|PS5/i.test(navigator.userAgent);
+const HAS_WEBASSEMBLY = typeof WebAssembly === "object";
+const HAS_WEBGL1 = (() => {
+  try {
+    const canvas = document.createElement("canvas");
+    return !!(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+  } catch (_) { return false; }
+})();
 const gamesBySystem = { nes: [], snes: [], gb: [], gbc: [], gba: [] };
 
 const systemSelect = document.getElementById("system");
@@ -49,7 +60,10 @@ function titleFromPath(path) {
 }
 
 function addGame(system, path) {
-  const rawUrl = `https://raw.githubusercontent.com/${REPOSITORY.owner}/${REPOSITORY.repo}/${REPOSITORY.branch}/${path.split("/").map(encodeURIComponent).join("/")}`;
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  // Serve ROMs through jsDelivr as well as the manifest. This avoids relying on
+  // raw.githubusercontent.com CORS behavior in the restricted PS5 browser.
+  const rawUrl = `https://cdn.jsdelivr.net/gh/${REPOSITORY.owner}/${REPOSITORY.repo}@${REPOSITORY.branch}/${encodedPath}`;
   gamesBySystem[system].push({ title: titleFromPath(path), url: rawUrl, path });
 }
 
@@ -74,20 +88,19 @@ function refreshGames() {
 }
 
 async function scanRepository() {
-  // jsDelivr provides a public file manifest for public GitHub repositories.
-  // This avoids GitHub API rate limits and works from a normal GitHub Pages browser.
-  const manifestUrl = `https://data.jsdelivr.com/v1/package/gh/${REPOSITORY.owner}/${REPOSITORY.repo}@${REPOSITORY.branch}/flat`;
+  // Scan the actual GitHub repository tree. This is the source of truth for ROMs.
+  const manifestUrl = `https://api.github.com/repos/${REPOSITORY.owner}/${REPOSITORY.repo}/git/trees/${REPOSITORY.branch}?recursive=1`;
   status.textContent = `Scanning ${REPOSITORY.owner}/${REPOSITORY.repo}/roms/…`;
 
   const response = await fetch(manifestUrl, { cache: "no-store" });
-  if (!response.ok) throw new Error(`ROM manifest request failed (${response.status}).`);
+  if (!response.ok) throw new Error(`GitHub ROM scan failed (${response.status}).`);
   const data = await response.json();
-  if (!Array.isArray(data.files)) throw new Error("The ROM manifest is invalid.");
+  if (!Array.isArray(data.tree)) throw new Error("The GitHub repository tree is invalid.");
 
-  for (const item of data.files) {
-    const path = (item.name || "").replace(/^\/+/, "");
+  for (const item of data.tree) {
+    const path = (item.path || "").replace(/^\/+/, "");
     if (!/^roms\//i.test(path)) continue;
-    if (!item.name || item.type === "directory") continue;
+    if (!item.path || item.type !== "blob") continue;
 
     const system = systemForPath(path);
     if (!system) continue;
@@ -114,6 +127,10 @@ function stopCurrentEmulator() {
   delete window.EJS_core;
   delete window.EJS_pathtodata;
   delete window.EJS_startOnLoaded;
+  delete window.EJS_threads;
+  delete window.EJS_forceLegacyCores;
+  delete window.EJS_noAutoFocus;
+  delete window.EJS_disableLocalStorage;
   delete window.EJS_mouse;
   delete window.EJS_multitap;
   delete window.EJS_askBeforeExit;
@@ -125,14 +142,32 @@ function loadEmulator(url) {
   if (!url) return;
 
   stopCurrentEmulator();
-  status.textContent = `Starting ${config.name} emulator…`;
+  if (IS_PS5) {
+    if (!HAS_WEBASSEMBLY) {
+      status.textContent = "PS5 browser: WebAssembly is not available. EmulatorJS cannot run here.";
+      return;
+    }
+    if (!HAS_WEBGL1) {
+      status.textContent = "PS5 browser: WebGL is not available. EmulatorJS cannot run here.";
+      return;
+    }
+    status.textContent = `PS5 mode: starting ${config.name} with legacy graphics…`;
+  } else {
+    status.textContent = `Starting ${config.name} emulator…`;
+  }
 
   window.EJS_player = "#game";
   window.EJS_gameUrl = url;
   window.EJS_gameName = gameSelect.options[gameSelect.selectedIndex].textContent;
   window.EJS_core = config.core;
   window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-  window.EJS_startOnLoaded = true;
+  // Do not rely on autoplay/auto-focus in the PS5 browser. The user has already
+  // pressed PLAY, so EmulatorJS can initialise from this interaction instead.
+  window.EJS_startOnLoaded = !IS_PS5;
+  window.EJS_threads = false;
+  window.EJS_forceLegacyCores = IS_PS5;
+  window.EJS_noAutoFocus = IS_PS5;
+  window.EJS_disableLocalStorage = IS_PS5;
   window.EJS_mouse = false;
   window.EJS_multitap = false;
   window.EJS_askBeforeExit = false;
@@ -162,6 +197,11 @@ resetButton.addEventListener("click", () => {
 });
 
 refreshGames();
+if (IS_PS5) {
+  status.textContent = HAS_WEBGL1 && HAS_WEBASSEMBLY
+    ? "PS5 compatibility mode ready: WebGL + WebAssembly detected."
+    : "PS5 compatibility mode: required graphics/WebAssembly support is missing.";
+}
 scanRepository().catch(error => {
   console.error(error);
   refreshGames();
