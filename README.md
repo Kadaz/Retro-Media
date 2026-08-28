@@ -1,55 +1,32 @@
 # Retro Hub — PS5 Browser Edition
 
-This version is designed for GitHub Pages and **does not have a PC ROM file picker**.
+This version is configured specifically for the public GitHub repository `Kadaz/New-Test`.
 
 ## Automatic ROM detection
 
-The page reads the public GitHub repository tree automatically through the GitHub API. You do not edit `games.json` and you do not register games manually.
+No PC ROM picker and no manual `games.json` editing.
 
-Put ROMs here:
+The page automatically scans the public repository manifest and finds every supported ROM anywhere below `roms/`.
 
-- `roms/nes/` → `.nes`, `.fds`, `.unif`, `.unf`
-- `roms/snes/` → `.sfc`, `.smc`, `.fig`, `.swc`, `.bsx`
-- `roms/gb/` → `.gb`
-- `roms/gbc/` → `.gbc`
-- `roms/gba/` → `.gba`
+Supported systems:
+- NES: `.nes`, `.fds`, `.unif`, `.unf`
+- SNES: `.sfc`, `.smc`, `.fig`, `.swc`, `.bsx`
+- Game Boy: `.gb`
+- Game Boy Color: `.gbc`
+- Game Boy Advance: `.gba`
 
-Subfolders inside those folders are also detected.
+Both layouts work:
 
-Example:
+`roms/game.gb`
 
-```text
-roms/
-  nes/
-    game.nes
-  snes/
-    game.sfc
-  gb/
-    game.gb
-  gbc/
-    game.gbc
-  gba/
-    game.gba
-```
+and
 
-After pushing a ROM to GitHub, refresh the GitHub Pages site. The game appears automatically.
+`roms/gb/game.gb`
+
+The system is detected from the ROM extension.
 
 ## Emulator
 
-The page uses the stable EmulatorJS distribution from the official EmulatorJS CDN at runtime. The emulator is started with the correct core for each system:
+EmulatorJS is loaded at runtime from its stable distribution. No emulator files are required in the repository.
 
-- NES → Nestopia
-- SNES → Snes9x
-- Game Boy → Gambatte
-- Game Boy Color → Gambatte
-- Game Boy Advance → mGBA
-
-No PC file input is used anywhere in the project.
-
-## GitHub Pages requirement
-
-The site must be opened from its normal GitHub Pages `*.github.io` address so the page can determine the GitHub owner and repository automatically.
-
-## ROM rights
-
-Only use ROMs you are legally entitled to use and distribute.
+NES = Nestopia, SNES = Snes9x, GB/GBC = Gambatte, GBA = mGBA.

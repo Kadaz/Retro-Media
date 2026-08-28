@@ -6,7 +6,9 @@ const SYSTEMS = {
   gba: { name: "Game Boy Advance", core: "mgba", extensions: [".gba"] }
 };
 
+const REPOSITORY = { owner: "Kadaz", repo: "New-Test", branch: "main" };
 const gamesBySystem = { nes: [], snes: [], gb: [], gbc: [], gba: [] };
+
 const systemSelect = document.getElementById("system");
 const gameSelect = document.getElementById("game-select");
 const launchButton = document.getElementById("launch");
@@ -33,23 +35,6 @@ social.forEach(([name, url]) => {
   document.getElementById("socialGrid").appendChild(a);
 });
 
-// This project is for Kadaz/New-Test. The fallback also makes the scanner
-// work while testing locally or on a non-github.io custom Pages domain.
-const FALLBACK_REPOSITORY = { owner: "Kadaz", repo: "New-Test" };
-
-function detectRepository() {
-  const host = location.hostname.toLowerCase();
-  const parts = location.pathname.split("/").filter(Boolean);
-
-  if (host.endsWith(".github.io")) {
-    const owner = host.split(".")[0];
-    const repo = parts.length ? parts[0] : `${owner}.github.io`;
-    return { owner, repo };
-  }
-
-  return FALLBACK_REPOSITORY;
-}
-
 function systemForPath(path) {
   const lower = path.toLowerCase().split("?")[0].split("#")[0];
   for (const [key, system] of Object.entries(SYSTEMS)) {
@@ -63,15 +48,14 @@ function titleFromPath(path) {
   return file.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
 }
 
-function addGame(system, path, rawBase) {
-  const url = `${rawBase}/${path.split("/").map(encodeURIComponent).join("/")}`;
-  gamesBySystem[system].push({ title: titleFromPath(path), url, path });
+function addGame(system, path) {
+  const rawUrl = `https://raw.githubusercontent.com/${REPOSITORY.owner}/${REPOSITORY.repo}/${REPOSITORY.branch}/${path.split("/").map(encodeURIComponent).join("/")}`;
+  gamesBySystem[system].push({ title: titleFromPath(path), url: rawUrl, path });
 }
 
 function refreshGames() {
   const system = systemSelect.value;
   const list = gamesBySystem[system] || [];
-
   gameSelect.innerHTML = "";
 
   const first = document.createElement("option");
@@ -86,55 +70,31 @@ function refreshGames() {
     option.textContent = game.title;
     gameSelect.appendChild(option);
   }
-
   launchButton.disabled = list.length === 0;
 }
 
-async function scanGitHubRepository() {
-  const repo = detectRepository();
-  status.textContent = `Scanning ${repo.owner}/${repo.repo}/roms/…`;
+async function scanRepository() {
+  // jsDelivr provides a public file manifest for public GitHub repositories.
+  // This avoids GitHub API rate limits and works from a normal GitHub Pages browser.
+  const manifestUrl = `https://data.jsdelivr.com/v1/package/gh/${REPOSITORY.owner}/${REPOSITORY.repo}@${REPOSITORY.branch}/flat`;
+  status.textContent = `Scanning ${REPOSITORY.owner}/${REPOSITORY.repo}/roms/…`;
 
-  const repoUrl = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`;
-  const repoResponse = await fetch(repoUrl, { cache: "no-store" });
-  if (!repoResponse.ok) throw new Error(`GitHub repository request failed (${repoResponse.status}).`);
+  const response = await fetch(manifestUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`ROM manifest request failed (${response.status}).`);
+  const data = await response.json();
+  if (!Array.isArray(data.files)) throw new Error("The ROM manifest is invalid.");
 
-  const repoInfo = await repoResponse.json();
-  const branch = repoInfo.default_branch || "main";
-  const treeUrl = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
-  const treeResponse = await fetch(treeUrl, { cache: "no-store" });
-  if (!treeResponse.ok) throw new Error(`GitHub ROM scan failed (${treeResponse.status}).`);
-
-  const tree = await treeResponse.json();
-  if (!Array.isArray(tree.tree)) throw new Error("GitHub did not return a repository tree.");
-
-  const rawBase = `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${branch}`;
-
-  // Accept BOTH layouts:
-  // roms/gba/game.gba
-  // roms/game.gba
-  // The system is determined from the ROM extension, so no manual JSON is needed.
-  for (const item of tree.tree) {
-    if (item.type !== "blob") continue;
-
-    const path = item.path.replace(/^\.\//, "");
+  for (const item of data.files) {
+    const path = (item.name || "").replace(/^\/+/, "");
     if (!/^roms\//i.test(path)) continue;
+    if (!item.name || item.type === "directory") continue;
 
     const system = systemForPath(path);
     if (!system) continue;
-
-    addGame(system, path, rawBase);
-  }
-
-  for (const list of Object.values(gamesBySystem)) {
-    const seen = new Set();
-    for (let i = list.length - 1; i >= 0; i--) {
-      if (seen.has(list[i].path)) list.splice(i, 1);
-      else seen.add(list[i].path);
-    }
+    addGame(system, path);
   }
 
   refreshGames();
-
   const total = Object.values(gamesBySystem).reduce((n, list) => n + list.length, 0);
   status.textContent = total
     ? `${total} ROM${total === 1 ? "" : "s"} found automatically.`
@@ -148,12 +108,15 @@ function stopCurrentEmulator() {
 
   document.querySelectorAll("#emulatorjs-loader").forEach(el => el.remove());
   gameContainer.innerHTML = "";
-
   delete window.EJS_player;
   delete window.EJS_gameUrl;
+  delete window.EJS_gameName;
   delete window.EJS_core;
   delete window.EJS_pathtodata;
   delete window.EJS_startOnLoaded;
+  delete window.EJS_mouse;
+  delete window.EJS_multitap;
+  delete window.EJS_askBeforeExit;
 }
 
 function loadEmulator(url) {
@@ -177,12 +140,8 @@ function loadEmulator(url) {
   const script = document.createElement("script");
   script.id = "emulatorjs-loader";
   script.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-  script.onload = () => {
-    status.textContent = `${config.name} emulator loaded.`;
-  };
-  script.onerror = () => {
-    status.textContent = "EmulatorJS could not be loaded. Check the network connection and refresh the page.";
-  };
+  script.onload = () => { status.textContent = `${config.name} emulator loaded.`; };
+  script.onerror = () => { status.textContent = "EmulatorJS could not be loaded. Check the network connection and refresh the page."; };
   document.body.appendChild(script);
 }
 
@@ -203,7 +162,7 @@ resetButton.addEventListener("click", () => {
 });
 
 refreshGames();
-scanGitHubRepository().catch(error => {
+scanRepository().catch(error => {
   console.error(error);
   refreshGames();
   status.textContent = `ROM scan error: ${error.message}`;
