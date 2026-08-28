@@ -88,20 +88,42 @@ function refreshGames() {
 }
 
 async function scanRepository() {
-  // Scan the actual GitHub repository tree. This is the source of truth for ROMs.
-  const manifestUrl = `https://api.github.com/repos/${REPOSITORY.owner}/${REPOSITORY.repo}/git/trees/${REPOSITORY.branch}?recursive=1`;
   status.textContent = `Scanning ${REPOSITORY.owner}/${REPOSITORY.repo}/roms/…`;
 
-  const response = await fetch(manifestUrl, { cache: "no-store" });
-  if (!response.ok) throw new Error(`GitHub ROM scan failed (${response.status}).`);
-  const data = await response.json();
-  if (!Array.isArray(data.tree)) throw new Error("The GitHub repository tree is invalid.");
+  // First try the GitHub tree API. It returns every file in the repository,
+  // including ROMs placed directly in roms/ or inside subfolders.
+  let paths = [];
+  try {
+    const apiUrl = `https://api.github.com/repos/${REPOSITORY.owner}/${REPOSITORY.repo}/git/trees/${REPOSITORY.branch}?recursive=1`;
+    const response = await fetch(apiUrl, { cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data.tree)) {
+        paths = data.tree
+          .filter(item => item.type === "blob")
+          .map(item => item.path)
+          .filter(path => /^roms\//i.test(path));
+      }
+    }
+  } catch (_) {}
 
-  for (const item of data.tree) {
-    const path = (item.path || "").replace(/^\/+/, "");
-    if (!/^roms\//i.test(path)) continue;
-    if (!item.path || item.type !== "blob") continue;
+  // Fallback: jsDelivr's public repository manifest. This also works when
+  // GitHub API requests are rate-limited or blocked by the browser.
+  if (!paths.length) {
+    const manifestUrl = `https://data.jsdelivr.com/v1/package/gh/${REPOSITORY.owner}/${REPOSITORY.repo}@${REPOSITORY.branch}/flat`;
+    const response = await fetch(manifestUrl, { cache: "no-store" });
+    if (!response.ok) throw new Error(`ROM manifest request failed (${response.status}).`);
+    const data = await response.json();
+    if (!Array.isArray(data.files)) throw new Error("The ROM manifest is invalid.");
+    paths = data.files
+      .filter(item => item.type !== "directory")
+      .map(item => (item.name || "").replace(/^\/+/, ""))
+      .filter(path => /^roms\//i.test(path));
+  }
 
+  // Remove duplicates in case a provider returns the same path twice.
+  const uniquePaths = [...new Set(paths)];
+  for (const path of uniquePaths) {
     const system = systemForPath(path);
     if (!system) continue;
     addGame(system, path);
@@ -111,7 +133,7 @@ async function scanRepository() {
   const total = Object.values(gamesBySystem).reduce((n, list) => n + list.length, 0);
   status.textContent = total
     ? `${total} ROM${total === 1 ? "" : "s"} found automatically.`
-    : "No ROMs found under roms/.";
+    : "No supported ROMs found under roms/.";
 }
 
 function stopCurrentEmulator() {
